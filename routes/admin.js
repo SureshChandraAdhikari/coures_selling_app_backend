@@ -1,13 +1,12 @@
 const { Router } = require("express");
 const adminRouter = Router();
-const { adminModel } = require("../db");
+const { adminModel, courseModel } = require("../db");
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
-
 const {z} = require('zod');
+const {Admin_Secret} = require('../config')
+const {adminMiddleware} = require('../middleware')
 
-
-Admin_Secret = "147asdfa"
 adminRouter.post("/signUp", async function (req, res) {
   // Define Zod schema for validation
   const adminSchema = z.object({
@@ -87,21 +86,64 @@ adminRouter.post("/signIn", async function (req, res) {
   }
 });
 
-adminRouter.post("/courses", function (req, res) {
+
+adminRouter.post("/course", adminMiddleware, async function (req, res) {
+  const adminId = req.userId;
+
+  const { title, description, imageUrl, price } = req.body;
+
+  
+  const course = await courseModel.create({
+    title: title,
+    description: description,
+    imageUrl: imageUrl,
+    price: price,
+    creatorId: adminId,
+  });
+
   res.json({
-    message: "my course Route",
+    message: "Course created",
+    courseId: course._id,
   });
 });
 
-adminRouter.put("/courses", function (req, res) {
+adminRouter.put("/course", adminMiddleware, async function (req, res) {
+  const adminId = req.userId;
+
+  const { title, description, imageUrl, price, courseId } = req.body;
+
+  if (!courseId) {
+    return res.status(400).json({ message: "Course ID is required" });
+  }
+  const course = await courseModel.updateOne(
+    {
+      _id: courseId,
+      creatorId: adminId,
+    },
+    {
+      title: title,
+      description: description,
+      imageUrl: imageUrl,
+      price: price,
+    }
+  );
+
   res.json({
-    message: "my course Route",
+    message: "Course updated",
+    courseId: course._id,
   });
 });
 
-adminRouter.get("/courses/bulk", function (req, res) {
+adminRouter.get("/course/bulk", adminMiddleware, async function (req, res) {
+  const adminId = req.userId;
+
+  const courses = await courseModel.find({
+    creatorId: adminId,
+  });
+
   res.json({
-    message: "my course Route",
+    message: "Course updated",
+    courses,
   });
 });
 

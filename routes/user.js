@@ -1,13 +1,13 @@
 const { Router } = require('express')
 const userRouter = Router();
-const { userModel } = require("../db");
+const { userModel, purchaseModel } = require("../db");
 const { z } = require("zod");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { JWT_SECRETE } = require("../config");
 
 
 
-JWT_SECRETE = "this@ is@ secrete"
 
 // POST route for sign up
 userRouter.post("/signUp", async function (req, res) {
@@ -89,9 +89,26 @@ userRouter.post("/signIn", async function (req, res) {
   }
 });
 
-userRouter.post("/mycourses", function (req, res) {
+userRouter.get("/purchases", userMiddleware, async function (req, res) {
+  const userId = req.userId;
+
+  const purchases = await purchaseModel.find({
+    userId,
+  });
+
+  let purchasedCourseIds = [];
+
+  for (let i = 0; i < purchases.length; i++) {
+    purchasedCourseIds.push(purchases[i].courseId);
+  }
+
+  const coursesData = await courseModel.find({
+    _id: { $in: purchasedCourseIds },
+  });
+
   res.json({
-    message: "my course Route",
+    purchases,
+    coursesData,
   });
 });
 
